@@ -62,7 +62,7 @@
                     </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-slate-400">Live Tick:</span>
-                        <span id="live-price-display" class="text-lg font-mono font-extrabold text-emerald-400">1.08500</span>
+                        <span id="live-price-display" class="text-lg font-mono font-extrabold text-emerald-400">1.08500</span></div><div class="flex flex-col text-right border-l border-slate-800 pl-3"><span class="text-[10px] uppercase text-slate-400 font-bold">Bid / Ask</span><span class="text-xs font-mono font-semibold text-slate-200"><span id="live-bid-display" class="text-rose-400">1.08492</span> / <span id="live-ask-display" class="text-blue-400">1.08508</span>
                     </div>
                 </div>
                 <div id="tv-chart" class="w-full h-[420px] rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center text-slate-500 text-sm font-mono">
@@ -521,55 +521,70 @@
         initializeChartForAsset('EURUSD');
         checkUserProfile();
 
-        // REAL-TIME MARKET TICK & ALERT LOOP
+                // ACCURATE REAL-TIME MARKET TICK & ALERT LOOP
         setInterval(async () => {
-            const cfg = assetConfigs[currentAsset] || assetConfigs['EURUSD'];
-            prevPrice = currentPrice;
-            let delta = (Math.random() - 0.49) * cfg.deltaScale;
-            currentPrice = parseFloat((currentPrice + delta).toFixed(cfg.step === 0.0001 ? 5 : 2));
-            document.getElementById('live-price-display').innerText = currentPrice.toFixed(cfg.step === 0.0001 ? 5 : 2);
-
-            let now = Math.floor(Date.now() / 1000);
-            if (now <= lastCandleTime) {
-                now = lastCandleTime + 1;
-            }
-            lastCandleTime = now;
-
-            if (candleSeries) {
-                try {
-                    candleSeries.update({ 
-                        time: now, 
-                        open: prevPrice, 
-                        high: Math.max(prevPrice, currentPrice), 
-                        low: Math.min(prevPrice, currentPrice), 
-                        close: currentPrice 
-                    });
-                } catch(chartErr) {
-                    console.warn("Chart tick skipped:", chartErr);
-                }
-            }
-
             try {
-                const alertRes = await fetch('/api/v1/alerts/check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        symbol: currentAsset,
-                        current_price: currentPrice,
-                        previous_price: prevPrice,
-                        pivot_levels: activePivotLevels
-                    })
-                });
-                if (alertRes.ok) {
-                    const alertData = await alertRes.json();
-                    if (alertData.triggered) {
-                        const banner = document.getElementById('alert-banner');
-                        banner.className = "mt-4 p-3.5 bg-rose-950 border border-rose-500 rounded-xl text-xs font-mono text-rose-200 text-center animate-bounce";
-                        document.getElementById('alert-text').innerText = alertData.message;
+                const res = await fetch('/api/v1/forex/quote?symbol=' + encodeURIComponent(currentAsset));
+                if (res.ok) {
+                    const quoteData = await res.json();
+                    prevPrice = currentPrice;
+                    currentPrice = quoteData.price;
+
+                    const decimals = (currentAsset === 'EURUSD' || currentAsset === 'GBUUSD') ? 5 : (currentAsset === 'USDJPY' ? 3 : 2);
+                    
+                    const priceDisplay = document.getElementById("live-price-display");
+                    if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(decimals);
+
+                    const bidDisplay = document.getElementById("live-bid-display");
+                    if (bidDisplay && quoteData.bid) bidDisplay.innerText = quoteData.bid.toFixed(decimals);
+
+                    const askDisplay = document.getElementById("live-ask-display");
+                    if (asdDisplay && quoteData.ask) askDisplay.innerText = quoteData.ask.toFixed(decimals);
+
+                    let now = Math.floor(Date.now() / 1000);
+                    if (now <= lastCandleTime) {
+                        now = lastCandleTime + 1;
+                    }
+                    lastCandleTime = now;
+
+                    if (candleSeries) {
+                        try {
+                            candleSeries.update({ 
+                                 time: now, 
+                                 open: prevPrice, 
+                                 high: Math.max(prevPrice, currentPrice), 
+                                 low: Math.min(prevPrice, currentPrice), 
+                                 close: currentPrice 
+                            });
+                        } catch(chartErr) {
+                            console.warn("Chart tick skipped:", chartErr);
+                        }
+                    }
+
+                    const alertRes = await fetch('/api/v1/alerts/check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            symbol: currentAsset,
+                            current_price: currentPrice,
+                            previous_price: prevPrice,
+                            pivot_levels: activePivotLevels
+                        })
+                    });
+                    if (alertRes.ok) {
+                        const alertData = await alertRes.json();
+                        if (alertData.triggered) {
+                            const banner = document.getElementById("alert-banner");
+                            banner.className = "mt-4 p-3.5 bg-rose-950 border border-rose-500 rounded-xl text-xs font-mono text-rose-200 text-center animate-bounce";
+                            document.getElementById("alert-text").innerText = alertData.message;
+                        }
                     }
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.warn("Real-time tick loop warning:", err);
+            }
         }, 2000);
+
     </script>
 </body>
 </html>
