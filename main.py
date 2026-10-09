@@ -192,3 +192,8 @@ async def check_price_crossing(
             )
             
     return AlertTriggerResponse(triggered=False, symbol=req.symbol, message="Price within threshold limits.")
+
+@app.options("/api/v1/pivots/calculate")
+@app.options("/api/v1/alerts/check")
+async def options_handler():
+    return JSONResponse(status_code=200, content={"status": "OPTIONS_PERMITTED"})
