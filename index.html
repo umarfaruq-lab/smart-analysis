@@ -6,8 +6,13 @@
     <title>Umarmathi Pivot Point Calculator & Real-Time Alert Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        .modal-backdrop { background-color: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); }
+    </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen relative">
+
+    <!-- HEADER BAR -->
     <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-3">
             <div class="w-3.5 h-3.5 bg-emerald-500 rounded-full animate-ping"></div>
@@ -19,96 +24,192 @@
             <span class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-full font-mono">
                 OWASP Top 10 Secured
             </span>
-            <button id="auth-btn" type="button" class="bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30 cursor-pointer">
-                Sign in with Google
-            </button>
+            <!-- UNAUTHENTICATED BUTTONS -->
+            <div id="unauth-actions" class="flex items-center space-x-2">
+                <button id="btn-open-login" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs md:text-sm px-3.5 py-2 rounded-lg font-semibold transition-all">
+                    Log In
+                </button>
+                <button id="btn-open-signup" class="bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30">
+                    Sign Up
+                </button>
+            </div>
+            <!-- AUTHENTICATED PROFILE BADGE -->
+            <div id="user-profile-badge" class="hidden flex items-center space-x-3">
+                <span id="user-email-display" class="text-xs bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-mono"></span>
+                <button id="btn-signout" class="bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all">
+                    Sign Out
+                </button>
+            </div>
         </div>
     </header>
 
+    <!-- MAIN DASHBOARD CONTENT -->
     <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Chart Section -->
+        
+        <!-- CHART & ALERT ENGINE SECTION -->
         <section class="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xl">
             <div>
                 <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
                     <div class="flex items-center space-x-3">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pair:</label>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Trading Pair:</label>
                         <select id="asset-symbol" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500">
+                            <option value="XAUUSD">XAUUSD (Gold Spot)</option>
+                            <option value="XAGUSD">XAGUSD (Silver Spot)</option>
                             <option value="EURUSD" selected>EURUSD (Euro / Dollar)</option>
                             <option value="GBPUSD">GBPUSD (Pound / Dollar)</option>
                             <option value="USDJPY">USDJPY (Dollar / Yen)</option>
-                            <option value="XAUUSD">XAUUSD (Gold)</option>
-                            <option value="XAGUSD">XAGUSD (Silver)</option>
                         </select>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-xs text-slate-400">Live Price:</span>
+                        <span class="text-xs text-slate-400">Live Tick:</span>
                         <span id="live-price-display" class="text-lg font-mono font-extrabold text-emerald-400">1.08500</span>
                     </div>
                 </div>
                 <div id="tv-chart" class="w-full h-[420px] rounded-xl overflow-hidden border border-slate-800"></div>
             </div>
+
+            <!-- AUTOMATED PRICE CROSSING ALERT BANNER -->
             <div id="alert-banner" class="mt-4 p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 text-center flex items-center justify-center space-x-2">
                 <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                <span id="alert-text">Automated Alert Status: Monitoring live price stream against Pivot, Support, and Resistance zones.</span>
+                <span id="alert-text">Automated Alert Engine Active: Monitoring price stream against calculated Support & Resistance levels.</span>
             </div>
         </section>
 
-        <!-- Form and Pivot Table Section -->
+        <!-- CALCULATOR & THRESHOLD TABLE SECTION -->
         <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xl">
             <div>
-                <h2 class="text-md font-bold text-slate-200 mb-4 border-b border-slate-800 pb-2 uppercase tracking-wide">
-                    Calculators & Watch Levels
+                <h2 class="text-md font-bold text-slate-200 mb-4 border-b border-slate-800 pb-2 uppercase tracking-wide flex justify-between items-center">
+                    <span>Pivot Controls</span>
+                    <span id="access-level-tag" class="text-[10px] bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded font-mono">Public Guest</span>
                 </h2>
+
                 <form id="pivot-form" onsubmit="return false;" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Calculation Framework</label>
                         <select id="calc-method" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
                             <option value="STANDARD">Standard Floor Pivots (Public)</option>
-                            <option value="FIBONACCI">Fibonacci Pivots (Requires Google Auth)</option>
-                            <option value="CAMARILLA">Camarilla Pivots (Requires Google Auth)</option>
+                            <option value="FIBONACCI">Fibonacci Pivots (Requires Account Login)</option>
+                            <option value="CAMARILLA">Camarilla Pivots (Requires Account Login)</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">High</label>
-                            <input type="number" step="0.0001" id="input-high" value="1.0890" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono">
+                            <input type="number" step="0.0001" id="input-high" value="1.0890" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Low</label>
-                            <input type="number" step="0.0001" id="input-low" value="1.0810" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono">
+                            <input type="number" step="0.0001" id="input-low" value="1.0810" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Close</label>
-                            <input type="number" step="0.0001" id="input-close" value="1.0850" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono">
+                            <input type="number" step="0.0001" id="input-close" value="1.0850" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
                         </div>
                     </div>
-                    <button type="button" id="btn-calculate" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-emerald-950 cursor-pointer">
+                    <button type="button" id="btn-calculate" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-emerald-950">
                         Calculate Levels & Set Alerts
                     </button>
                 </form>
+
+                <!-- THRESHOLD OUTPUT TABLE -->
                 <div class="mt-6 space-y-1.5 text-xs font-mono">
-                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-900/40 text-rose-400"><span>R3:</span><span id="val-r3" class="font-bold">1.0970</span></div>
-                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-800/30 text-rose-300"><span>R2:</span><span id="val-r2" class="font-bold">1.0930</span></div>
-                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-700/20 text-rose-200"><span>R1:</span><span id="val-r1" class="font-bold">1.0890</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-900/40 text-rose-400"><span>R3 Resistance:</span><span id="val-r3" class="font-bold">1.0970</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-800/30 text-rose-300"><span>R2 Resistance:</span><span id="val-r2" class="font-bold">1.0930</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-700/20 text-rose-200"><span>R1 Resistance:</span><span id="val-r1" class="font-bold">1.0890</span></div>
                     <div class="flex justify-between p-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-extrabold text-sm rounded-lg"><span>PIVOT POINT:</span><span id="val-p">1.0850</span></div>
-                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-700/20 text-blue-200"><span>S1:</span><span id="val-s1" class="font-bold">1.0810</span></div>
-                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-800/30 text-blue-300"><span>S2:</span><span id="val-s2" class="font-bold">1.0770</span></div>
-                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-900/40 text-blue-400"><span>S3:</span><span id="val-s3" class="font-bold">1.0730</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-700/20 text-blue-200"><span>S1 Support:</span><span id="val-s1" class="font-bold">1.0810</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-800/30 text-blue-300"><span>S2 Support:</span><span id="val-s2" class="font-bold">1.0770</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-900/40 text-blue-400"><span>S3 Support:</span><span id="val-s3" class="font-bold">1.0730</span></div>
                 </div>
             </div>
         </section>
     </main>
 
+    <!-- AUTHENTICATION MODAL -->
+    <div id="auth-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <button id="btn-close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            
+            <!-- MODAL TABS -->
+            <div class="flex border-b border-slate-800 mb-6">
+                <button id="tab-signup-btn" class="flex-1 pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400">Sign Up</button>
+                <button id="tab-login-btn" class="flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200">Log In</button>
+            </div>
+
+            <!-- SIGN UP FORM -->
+            <form id="signup-form" onsubmit="return false;" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address</label>
+                    <input type="email" id="signup-email" required placeholder="trader@domain.com" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name (Optional)</label>
+                    <input type="text" id="signup-name" placeholder="Umarmathi Trader" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+                    <input type="password" id="signup-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <!-- OWASP PASSWORD POLICY CHECKLIST -->
+                <div class="bg-slate-950/80 border border-slate-800 p-3 rounded-lg space-y-1 text-xs">
+                    <p class="font-bold text-slate-400 text-[11px] uppercase mb-1.5">Password Security Checklist:</p>
+                    <div id="policy-len" class="text-rose-400 flex items-center space-x-1.5"><span>✗</span><span>At least 8 characters long</span></div>
+                    <div id="policy-upper" class="text-rose-400 flex items-center space-x-1.5"><span>✗</span><span>One uppercase letter (A-Z)</span></div>
+                    <div id="policy-lower" class="text-rose-400 flex items-center space-x-1.5"><span>✗</span><span>One lowercase letter (a-z)</span></div>
+                    <div id="policy-num" class="text-rose-400 flex items-center space-x-1.5"><span>✗</span><span>One numeric digit (0-9)</span></div>
+                    <div id="policy-spec" class="text-rose-400 flex items-center space-x-1.5"><span>✗</span><span>One special character (!@#$%...)</span></div>
+                </div>
+
+                <button type="button" id="btn-submit-signup" class="w-full bg-blue-600 hover:bg-blue-500 font-bold text-white py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-blue-950">
+                    Create Account & Unlock Advanced Models
+                </button>
+            </form>
+
+            <!-- LOG IN FORM -->
+            <form id="login-form" onsubmit="return false;" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address</label>
+                    <input type="email" id="login-email" required placeholder="trader@domain.com" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                </div>
+                <button type="button" id="btn-submit-login" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-emerald-950">
+                    Log In to Account
+                </button>
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-800"></div>
+                    <span class="flex-shrink mx-3 text-xs text-slate-500">OR</span>
+                    <div class="flex-grow border-t border-slate-800"></div>
+                </div>
+                <button type="button" id="btn-google-oauth" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all border border-slate-700 flex items-center justify-center space-x-2">
+                    <span>Sign in with Google OAuth</span>
+                </button>
+            </form>
+
+            <div id="auth-error-msg" class="hidden mt-3 p-2.5 bg-rose-950/80 border border-rose-800 rounded-lg text-xs text-rose-300 text-center"></div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT RUNTIME LOGIC -->
     <script>
-        // Asset Defaults Matrix
         const assetConfigs = {
-            'EURUSD': { base: 1.0850, high: 1.0890, low: 1.0810, close: 1.0850, step: 0.0001, deltaScale: 0.0008 },
-            'GBPUSD': { base: 1.3030, high: 1.3080, low: 1.2980, close: 1.3030, step: 0.0001, deltaScale: 0.0008 },
-            'USDJPY': { base: 148.90, high: 149.50, low: 148.10, close: 148.90, step: 0.01, deltaScale: 0.12 },
-            'XAUUSD': { base: 2642.30, high: 2650.50, low: 2620.10, close: 2642.30, step: 0.01, deltaScale: 1.50 },
-            'XAGUSD': { base: 31.40, high: 31.80, low: 30.90, close: 31.40, step: 0.01, deltaScale: 0.15 }
+            'XAUUSD': { base: 2645.50, step: 0.01, high: 2655.00, low: 2635.00, close: 2645.50, deltaScale: 0.40 },
+            'XAGUSD': { base: 31.80, step: 0.01, high: 32.20, low: 31.40, close: 31.80, deltaScale: 0.05 },
+            'EURUSD': { base: 1.0850, step: 0.0001, high: 1.0890, low: 1.0810, close: 1.0850, deltaScale: 0.0008 },
+            'GBPUSD': { base: 1.3020, step: 0.0001, high: 1.3070, low: 1.2980, close: 1.3020, deltaScale: 0.0008 },
+            'USDJPY': { base: 148.80, step: 0.01, high: 149.50, low: 148.10, close: 148.80, deltaScale: 0.08 }
         };
 
+        let currentAsset = 'EURUSD';
+        let currentPrice = assetConfigs[currentAsset].base;
+        let prevPrice = currentPrice;
+        let activePivotLevels = { pivot: 1.0850, r1: 1.0890, r2: 1.0930, r3: 1.0970, s1: 1.0810, s2: 1.0770, s3: 1.0730 };
+        let lastCandleTime = 0;
+
+        // INITIALIZE LIGHTWEIGHT CHART
         const chartElement = document.getElementById('tv-chart');
         const chart = LightweightCharts.createChart(chartElement, {
             layout: { backgroundColor: '#020617', textColor: '#94a3b8' },
@@ -119,33 +220,28 @@
             upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
         });
 
-        let currentAsset = 'EURUSD';
-        let currentPrice = assetConfigs[currentAsset].base;
-        let prevPrice = currentPrice;
-        let lastCandleTime = Math.floor(Date.now() / 1000);
-        let activePivotLevels = { pivot: 1.0850, r1: 1.0890, r2: 1.0930, r3: 1.0970, s1: 1.0810, s2: 1.0770, s3: 1.0730 };
-
         function initializeChartForAsset(symbol) {
             currentAsset = symbol;
             const cfg = assetConfigs[symbol] || assetConfigs['EURUSD'];
-            currentPrice = cfg.close;
-            prevPrice = currentPrice;
+            currentPrice = cfg.base;
+            prevPrice = cfg.base;
 
             document.getElementById('input-high').value = cfg.high;
             document.getElementById('input-low').value = cfg.low;
             document.getElementById('input-close').value = cfg.close;
+
+            const decimals = cfg.step === 0.0001 ? 4 : 2;
             document.getElementById('live-price-display').innerText = currentPrice.toFixed(cfg.step === 0.0001 ? 5 : 2);
 
-            let baseTime = Math.floor(Date.now() / 1000) - (50 * 60);
+            let baseTime = Math.floor(Date.now() / 1000) - 3000;
             let candles = [];
-            let price = cfg.close;
             for (let i = 0; i < 50; i++) {
-                let open = price + (Math.random() - 0.5) * (cfg.deltaScale * 1.2);
+                let open = currentPrice + (Math.random() - 0.5) * (cfg.deltaScale * 1.5);
                 let high = open + Math.random() * cfg.deltaScale;
                 let low = open - Math.random() * cfg.deltaScale;
                 let close = (high + low) / 2;
                 candles.push({ time: baseTime + (i * 60), open, high, low, close });
-                price = close;
+                currentPrice = close;
             }
             lastCandleTime = baseTime + (49 * 60);
             candleSeries.setData(candles);
@@ -154,7 +250,7 @@
 
         async function triggerCalculation() {
             const reqData = {
-                symbol: document.getElementById('asset-symbol').value,
+                symbol: currentAsset,
                 high: parseFloat(document.getElementById('input-high').value),
                 low: parseFloat(document.getElementById('input-low').value),
                 close: parseFloat(document.getElementById('input-close').value),
@@ -172,7 +268,8 @@
                 });
 
                 if (res.status === 403) {
-                    alert("Access Denied: Advanced Fibonacci and Camarilla pivot models require Google Authentication! Please click 'Sign in with Google' above.");
+                    showAuthModal('signup');
+                    showAuthError("Access Denied: Advanced Fibonacci and Camarilla pivot models require user account login!");
                     return;
                 }
 
@@ -189,11 +286,164 @@
                     document.getElementById('val-s3').innerText = data.s3.toFixed(decimals);
                 }
             } catch (e) {
-                console.warn("Calculation request warning:", e);
+                console.warn("Calculation warning:", e);
             }
         }
 
-        // Event Listeners
+        // AUTHENTICATION MODAL & PROFILE LOGIC
+        function showAuthModal(tab = 'signup') {
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('auth-error-msg').classList.add('hidden');
+            if (tab === 'signup') {
+                document.getElementById('signup-form').classList.remove('hidden');
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('tab-signup-btn').className = "flex-1 pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400";
+                document.getElementById('tab-login-btn').className = "flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200";
+            } else {
+                document.getElementById('signup-form').classList.add('hidden');
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('tab-login-btn').className = "flex-1 pb-3 text-sm font-bold border-b-2 border-emerald-500 text-emerald-400";
+                document.getElementById('tab-signup-btn').className = "flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200";
+            }
+        }
+
+        function hideAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function showAuthError(msg) {
+            const errBox = document.getElementById('auth-error-msg');
+            errBox.innerText = msg;
+            errBox.classList.remove('hidden');
+        }
+
+        async function checkUserProfile() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                document.getElementById('unauth-actions').classList.remove('hidden');
+                document.getElementById('user-profile-badge').classList.add('hidden');
+                document.getElementById('access-level-tag').innerText = "Public Guest";
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/v1/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const profile = await res.json();
+                    if (profile.authenticated) {
+                        document.getElementById('unauth-actions').classList.add('hidden');
+                        document.getElementById('user-profile-badge').classList.remove('hidden');
+                        document.getElementById('user-email-display').innerText = profile.email || 'Authenticated Trader';
+                        document.getElementById('access-level-tag').innerText = "Logged In (TRADER)";
+                    }
+                } else {
+                    localStorage.removeItem('auth_token');
+                    checkUserProfile();
+                }
+            } catch (e) {}
+        }
+
+        // REAL-TIME PASSWORD POLICY VALIDATOR
+        document.getElementById('signup-password').addEventListener('input', (e) => {
+            const val = e.target.value;
+            const updateCheck = (id, valid) => {
+                const el = document.getElementById(id);
+                el.className = valid ? "text-emerald-400 flex items-center space-x-1.5 font-semibold" : "text-rose-400 flex items-center space-x-1.5";
+                el.children[0].innerText = valid ? "✓" : "✗";
+            };
+            updateCheck('policy-len', val.length >= 8);
+            updateCheck('policy-upper', /[A-Z]/.test(val));
+            updateCheck('policy-lower', /[a-z]/.test(val));
+            updateCheck('policy-num', /[0-9]/.test(val));
+            updateCheck('policy-spec', /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?/]/.test(val));
+        });
+
+        // AUTH FORM SUBMISSIONS
+        document.getElementById('btn-submit-signup').addEventListener('click', async () => {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const fullName = document.getElementById('signup-name').value;
+
+            try {
+                const res = await fetch('/api/v1/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, full_name: fullName })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('auth_token', data.access_token);
+                    hideAuthModal();
+                    checkUserProfile();
+                    alert("Account created successfully! Advanced calculation models unlocked.");
+                } else {
+                    if (data.detail && data.detail.requirements) {
+                        showAuthError("Password Policy Violation: " + data.detail.requirements.join(" "));
+                    } else {
+                        showAuthError(data.detail || "Signup failed.");
+                    }
+                }
+            } catch (err) {
+                showAuthError("Network error during signup.");
+            }
+        });
+
+        document.getElementById('btn-submit-login').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('auth_token', data.access_token);
+                    hideAuthModal();
+                    checkUserProfile();
+                } else {
+                    showAuthError(data.detail || "Login failed.");
+                }
+            } catch (err) {
+                showAuthError("Network error during login.");
+            }
+        });
+
+        document.getElementById('btn-google-oauth').addEventListener('click', async () => {
+            const email = prompt("Google OAuth 2.0 Sign-In:\n\nEnter your Google email to authenticate:", "trader@umarmathi.com");
+            if (email) {
+                const res = await fetch('/api/v1/auth/google/callback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (data.access_token) {
+                    localStorage.setItem('auth_token', data.access_token);
+                    hideAuthModal();
+                    checkUserProfile();
+                }
+            }
+        });
+
+        // EVENT LISTENERS
+        document.getElementById('btn-open-signup').addEventListener('click', () => showAuthModal('signup'));
+        document.getElementById('btn-open-login').addEventListener('click', () => showAuthModal('login'));
+        document.getElementById('btn-close-modal').addEventListener('click', hideAuthModal);
+        document.getElementById('tab-signup-btn').addEventListener('click', () => showAuthModal('signup'));
+        document.getElementById('tab-login-btn').addEventListener('click', () => showAuthModal('login'));
+
+        document.getElementById('btn-signout').addEventListener('click', () => {
+            localStorage.removeItem('auth_token');
+            checkUserProfile();
+        });
+
         document.getElementById('btn-calculate').addEventListener('click', (e) => {
             e.preventDefault();
             triggerCalculation();
@@ -203,20 +453,11 @@
             initializeChartForAsset(e.target.value);
         });
 
-        document.getElementById('auth-btn').addEventListener('click', function() {
-            const email = prompt("Google OAuth 2.0 Sign-In:\n\nEnter your Google email address to authenticate:", "trader@umarmathi.com");
-            if (email) {
-                localStorage.setItem('auth_token', 'demo_jwt_authenticated_trader_token');
-                this.innerText = `Signed in: ${email}`;
-                this.className = "bg-emerald-600 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold shadow-lg shadow-emerald-950";
-                alert(`Authentication Successful! Welcome ${email}. You have unlocked Fibonacci and Camarilla calculation models.`);
-            }
-        });
-
-        // Initialize Default Pair
+        // INITIALIZE DEFAULT STATE
         initializeChartForAsset('EURUSD');
+        checkUserProfile();
 
-        // Robust Live Tick Loop
+        // REAL-TIME MARKET TICK & ALERT LOOP
         setInterval(async () => {
             const cfg = assetConfigs[currentAsset] || assetConfigs['EURUSD'];
             prevPrice = currentPrice;
@@ -239,7 +480,7 @@
                     close: currentPrice 
                 });
             } catch(chartErr) {
-                console.warn("Chart update skipped:", chartErr);
+                console.warn("Chart tick skipped:", chartErr);
             }
 
             try {
