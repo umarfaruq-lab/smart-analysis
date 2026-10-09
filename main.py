@@ -1,5 +1,4 @@
-from fastapi.responses import FileResponse
-@app.get("/")
-async def serve\_frontend():
-    """Serves the main TradingView dashboard interface""" 
-    return FileResponse("index.html")
+from fastapi import FastAPI
+app = FastAPI()
+@app.get('/healthz')
+def health(): return {'status':'healthy'}
