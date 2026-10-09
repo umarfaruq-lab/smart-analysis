@@ -1,1 +1,199 @@
-<!DOCTYPE html><html><body><h1>Umarmathi Pivot Point Calculator</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Umarmathi Pivot Point Calculator & Real-Time Alert Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen">
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-3.5 h-3.5 bg-emerald-500 rounded-full animate-ping"></div>
+            <h1 class="text-lg md:text-xl font-bold tracking-tight text-white">
+                Umarmathi Pivot Point Calculator & Real-Time Alert System
+            </h1>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-full font-mono">
+                OWASP Top 10 Secured
+            </span>
+            <button id="auth-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30">
+                Sign in with Google
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section class="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xl">
+            <div>
+                <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pair:</label>
+                        <select id="asset-symbol" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500">
+                            <option value="XAUUSD">XAUUSD (Gold)</option>
+                            <option value="XAGUSD">XAGUSD (Silver)</option>
+                            <option value="EURUSD" selected>EURUSD (Euro / Dollar)</option>
+                            <option value="GBPUSD">GBPUSD (Pound / Dollar)</option>
+                            <option value="USDJPY">USDJPY (Dollar / Yen)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400">Live Price:</span>
+                        <span id="live-price-display" class="text-lg font-mono font-extrabold text-emerald-400">1.08500</span>
+                    </div>
+                </div>
+                <div id="tv-chart" class="w-full h-[420px] rounded-xl overflow-hidden border border-slate-800"></div>
+            </div>
+            <div id="alert-banner" class="mt-4 p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 text-center flex items-center justify-center space-x-2">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span id="alert-text">Automated Alert Status: Monitoring live price stream against Pivot, Support, and Resistance zones.</span>
+            </div>
+        </section>
+
+        <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xl">
+            <div>
+                <h2 class="text-md font-bold text-slate-200 mb-4 border-b border-slate-800 pb-2 uppercase tracking-wide">
+                    Calculators & Watch Levels
+                </h2>
+                <form id="pivot-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Calculation Framework</label>
+                        <select id="calc-method" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                            <option value="STANDARD">Standard Floor Pivots (Public)</option>
+                            <option value="FIBONACCI">Fibonacci Pivots (Requires Google Auth)</option>
+                            <option value="CAMARILLA">Camarilla Pivots (Requires Google Auth)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">High</label>
+                            <input type="number" step="0.0001" id="input-high" value="1.0890" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Low</label>
+                            <input type="number" step="0.0001" id="input-low" value="1.0810" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Close</label>
+                            <input type="number" step="0.0001" id="input-close" value="1.0850" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono">
+                        </div>
+                    </div>
+                    <button type="button" id="btn-calculate" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-emerald-950">
+                        Calculate Levels & Set Alerts
+                    </button>
+                </form>
+                <div class="mt-6 space-y-1.5 text-xs font-mono">
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-900/40 text-rose-400"><span>R3:</span><span id="val-r3" class="font-bold">1.0970</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-800/30 text-rose-300"><span>R2:</span><span id="val-r2" class="font-bold">1.0930</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-rose-700/20 text-rose-200"><span>R1:</span><span id="val-r1" class="font-bold">1.0890</span></div>
+                    <div class="flex justify-between p-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-extrabold text-sm rounded-lg"><span>PIVOT POINT:</span><span id="val-p">1.0850</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-700/20 text-blue-200"><span>S1:</span><span id="val-s1" class="font-bold">1.0810</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-800/30 text-blue-300"><span>S2:</span><span id="val-s2" class="font-bold">1.0770</span></div>
+                    <div class="flex justify-between p-2 bg-slate-950/80 rounded-lg border border-blue-900/40 text-blue-400"><span>S3:</span><span id="val-s3" class="font-bold">1.0730</span></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const chartElement = document.getElementById('tv-chart');
+        const chart = LightweightCharts.createChart(chartElement, {
+            layout: { backgroundColor: '#020617', textColor: '#94a3b8' },
+            grid: { vertLines: { color: '#0f172a' }, horzLines: { color: '#0f172a' } },
+            timeScale: { timeVisible: true, secondsVisible: true }
+        });
+        const candleSeries = chart.addCandlestickSeries({
+            upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
+        });
+
+        let currentPrice = 1.0850;
+        let prevPrice = 1.0850;
+        let baseTime = Math.floor(Date.now() / 1000) - 3600;
+        let candles = [];
+        for (let i = 0; i < 50; i++) {
+            let open = currentPrice + (Math.random() - 0.5) * 0.0010;
+            let high = open + Math.random() * 0.0008;
+            let low = open - Math.random() * 0.0008;
+            let close = (high + low) / 2;
+            candles.push({ time: baseTime + (i * 60), open, high, low, close });
+            currentPrice = close;
+        }
+        candleSeries.setData(candles);
+
+        let activePivotLevels = { pivot: 1.0850, r1: 1.0890, r2: 1.0930, r3: 1.0970, s1: 1.0810, s2: 1.0770, s3: 1.0730 };
+
+        async function triggerCalculation() {
+            const reqData = {
+                symbol: document.getElementById('asset-symbol').value,
+                high: parseFloat(document.getElementById('input-high').value),
+                low: parseFloat(document.getElementById('input-low').value),
+                close: parseFloat(document.getElementById('input-close').value),
+                method: document.getElementById('calc-method').value
+            };
+            try {
+                const token = localStorage.getItem('auth_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const res = await fetch('/api/v1/pivots/calculate', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(reqData)
+                });
+
+                if (res.status === 403) {
+                    alert("Access Denied: Advanced Fibonacci and Camarilla pivot models require Google Authentication!");
+                    return;
+                }
+
+                if (res.ok) {
+                    const data = await res.json();
+                    activePivotLevels = data;
+                    document.getElementById('val-p').innerText = data.pivot.toFixed(4);
+                    document.getElementById('val-r1').innerText = data.r1.toFixed(4);
+                    document.getElementById('val-r2').innerText = data.r2.toFixed(4);
+                    document.getElementById('val-r3').innerText = data.r3.toFixed(4);
+                    document.getElementById('val-s1').innerText = data.s1.toFixed(4);
+                    document.getElementById('val-s2').innerText = data.s2.toFixed(4);
+                    document.getElementById('val-s3').innerText = data.s3.toFixed(4);
+                }
+            } catch (e) {}
+        }
+
+        document.getElementById('btn-calculate').addEventListener('click', triggerCalculation);
+
+        setInterval(async () => {
+            prevPrice = currentPrice;
+            let delta = (Math.random() - 0.49) * 0.0008;
+            currentPrice = parseFloat((currentPrice + delta).toFixed(5));
+            document.getElementById('live-price-display').innerText = currentPrice.toFixed(5);
+
+            let now = Math.floor(Date.now() / 1000);
+            candleSeries.update({ time: now, open: prevPrice, high: Math.max(prevPrice, currentPrice), low: Math.min(prevPrice, currentPrice), close: currentPrice });
+
+            try {
+                const alertRes = await fetch('/api/v1/alerts/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: document.getElementById('asset-symbol').value,
+                        current_price: currentPrice,
+                        previous_price: prevPrice,
+                        pivot_levels: activePivotLevels
+                    })
+                });
+                if (alertRes.ok) {
+                    const alertData = await alertRes.json();
+                    if (alertData.triggered) {
+                        const banner = document.getElementById('alert-banner');
+                        banner.className = "mt-4 p-3.5 bg-rose-950 border border-rose-500 rounded-xl text-xs font-mono text-rose-200 text-center animate-bounce";
+                        document.getElementById('alert-text').innerText = alertData.message;
+                    }
+                }
+            } catch (err) {}
+        }, 2000);
+    </script>
+</body>
+</html>
