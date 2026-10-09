@@ -19,24 +19,25 @@
             <span class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-full font-mono">
                 OWASP Top 10 Secured
             </span>
-            <button id="auth-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30">
+            <button id="auth-btn" type="button" class="bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30 cursor-pointer">
                 Sign in with Google
             </button>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Chart Section -->
         <section class="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xl">
             <div>
                 <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
                     <div class="flex items-center space-x-3">
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pair:</label>
                         <select id="asset-symbol" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500">
-                            <option value="XAUUSD">XAUUSD (Gold)</option>
-                            <option value="XAGUSD">XAGUSD (Silver)</option>
                             <option value="EURUSD" selected>EURUSD (Euro / Dollar)</option>
                             <option value="GBPUSD">GBPUSD (Pound / Dollar)</option>
                             <option value="USDJPY">USDJPY (Dollar / Yen)</option>
+                            <option value="XAUUSD">XAUUSD (Gold)</option>
+                            <option value="XAGUSD">XAGUSD (Silver)</option>
                         </select>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -52,12 +53,13 @@
             </div>
         </section>
 
+        <!-- Form and Pivot Table Section -->
         <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xl">
             <div>
                 <h2 class="text-md font-bold text-slate-200 mb-4 border-b border-slate-800 pb-2 uppercase tracking-wide">
                     Calculators & Watch Levels
                 </h2>
-                <form id="pivot-form" class="space-y-4">
+                <form id="pivot-form" onsubmit="return false;" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Calculation Framework</label>
                         <select id="calc-method" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
@@ -80,7 +82,7 @@
                             <input type="number" step="0.0001" id="input-close" value="1.0850" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 font-mono">
                         </div>
                     </div>
-                    <button type="button" id="btn-calculate" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-emerald-950">
+                    <button type="button" id="btn-calculate" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-emerald-950 cursor-pointer">
                         Calculate Levels & Set Alerts
                     </button>
                 </form>
@@ -98,6 +100,15 @@
     </main>
 
     <script>
+        // Asset Defaults Matrix
+        const assetConfigs = {
+            'EURUSD': { base: 1.0850, high: 1.0890, low: 1.0810, close: 1.0850, step: 0.0001, deltaScale: 0.0008 },
+            'GBPUSD': { base: 1.3030, high: 1.3080, low: 1.2980, close: 1.3030, step: 0.0001, deltaScale: 0.0008 },
+            'USDJPY': { base: 148.90, high: 149.50, low: 148.10, close: 148.90, step: 0.01, deltaScale: 0.12 },
+            'XAUUSD': { base: 2642.30, high: 2650.50, low: 2620.10, close: 2642.30, step: 0.01, deltaScale: 1.50 },
+            'XAGUSD': { base: 31.40, high: 31.80, low: 30.90, close: 31.40, step: 0.01, deltaScale: 0.15 }
+        };
+
         const chartElement = document.getElementById('tv-chart');
         const chart = LightweightCharts.createChart(chartElement, {
             layout: { backgroundColor: '#020617', textColor: '#94a3b8' },
@@ -108,21 +119,38 @@
             upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
         });
 
-        let currentPrice = 1.0850;
-        let prevPrice = 1.0850;
-        let baseTime = Math.floor(Date.now() / 1000) - 3600;
-        let candles = [];
-        for (let i = 0; i < 50; i++) {
-            let open = currentPrice + (Math.random() - 0.5) * 0.0010;
-            let high = open + Math.random() * 0.0008;
-            let low = open - Math.random() * 0.0008;
-            let close = (high + low) / 2;
-            candles.push({ time: baseTime + (i * 60), open, high, low, close });
-            currentPrice = close;
-        }
-        candleSeries.setData(candles);
-
+        let currentAsset = 'EURUSD';
+        let currentPrice = assetConfigs[currentAsset].base;
+        let prevPrice = currentPrice;
+        let lastCandleTime = Math.floor(Date.now() / 1000);
         let activePivotLevels = { pivot: 1.0850, r1: 1.0890, r2: 1.0930, r3: 1.0970, s1: 1.0810, s2: 1.0770, s3: 1.0730 };
+
+        function initializeChartForAsset(symbol) {
+            currentAsset = symbol;
+            const cfg = assetConfigs[symbol] || assetConfigs['EURUSD'];
+            currentPrice = cfg.close;
+            prevPrice = currentPrice;
+
+            document.getElementById('input-high').value = cfg.high;
+            document.getElementById('input-low').value = cfg.low;
+            document.getElementById('input-close').value = cfg.close;
+            document.getElementById('live-price-display').innerText = currentPrice.toFixed(cfg.step === 0.0001 ? 5 : 2);
+
+            let baseTime = Math.floor(Date.now() / 1000) - (50 * 60);
+            let candles = [];
+            let price = cfg.close;
+            for (let i = 0; i < 50; i++) {
+                let open = price + (Math.random() - 0.5) * (cfg.deltaScale * 1.2);
+                let high = open + Math.random() * cfg.deltaScale;
+                let low = open - Math.random() * cfg.deltaScale;
+                let close = (high + low) / 2;
+                candles.push({ time: baseTime + (i * 60), open, high, low, close });
+                price = close;
+            }
+            lastCandleTime = baseTime + (49 * 60);
+            candleSeries.setData(candles);
+            triggerCalculation();
+        }
 
         async function triggerCalculation() {
             const reqData = {
@@ -144,41 +172,82 @@
                 });
 
                 if (res.status === 403) {
-                    alert("Access Denied: Advanced Fibonacci and Camarilla pivot models require Google Authentication!");
+                    alert("Access Denied: Advanced Fibonacci and Camarilla pivot models require Google Authentication! Please click 'Sign in with Google' above.");
                     return;
                 }
 
                 if (res.ok) {
                     const data = await res.json();
                     activePivotLevels = data;
-                    document.getElementById('val-p').innerText = data.pivot.toFixed(4);
-                    document.getElementById('val-r1').innerText = data.r1.toFixed(4);
-                    document.getElementById('val-r2').innerText = data.r2.toFixed(4);
-                    document.getElementById('val-r3').innerText = data.r3.toFixed(4);
-                    document.getElementById('val-s1').innerText = data.s1.toFixed(4);
-                    document.getElementById('val-s2').innerText = data.s2.toFixed(4);
-                    document.getElementById('val-s3').innerText = data.s3.toFixed(4);
+                    const decimals = assetConfigs[currentAsset].step === 0.0001 ? 4 : 2;
+                    document.getElementById('val-p').innerText = data.pivot.toFixed(decimals);
+                    document.getElementById('val-r1').innerText = data.r1.toFixed(decimals);
+                    document.getElementById('val-r2').innerText = data.r2.toFixed(decimals);
+                    document.getElementById('val-r3').innerText = data.r3.toFixed(decimals);
+                    document.getElementById('val-s1').innerText = data.s1.toFixed(decimals);
+                    document.getElementById('val-s2').innerText = data.s2.toFixed(decimals);
+                    document.getElementById('val-s3').innerText = data.s3.toFixed(decimals);
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.warn("Calculation request warning:", e);
+            }
         }
 
-        document.getElementById('btn-calculate').addEventListener('click', triggerCalculation);
+        // Event Listeners
+        document.getElementById('btn-calculate').addEventListener('click', (e) => {
+            e.preventDefault();
+            triggerCalculation();
+        });
 
+        document.getElementById('asset-symbol').addEventListener('change', (e) => {
+            initializeChartForAsset(e.target.value);
+        });
+
+        document.getElementById('auth-btn').addEventListener('click', function() {
+            const email = prompt("Google OAuth 2.0 Sign-In:\n\nEnter your Google email address to authenticate:", "trader@umarmathi.com");
+            if (email) {
+                localStorage.setItem('auth_token', 'demo_jwt_authenticated_trader_token');
+                this.innerText = `Signed in: ${email}`;
+                this.className = "bg-emerald-600 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold shadow-lg shadow-emerald-950";
+                alert(`Authentication Successful! Welcome ${email}. You have unlocked Fibonacci and Camarilla calculation models.`);
+            }
+        });
+
+        // Initialize Default Pair
+        initializeChartForAsset('EURUSD');
+
+        // Robust Live Tick Loop
         setInterval(async () => {
+            const cfg = assetConfigs[currentAsset] || assetConfigs['EURUSD'];
             prevPrice = currentPrice;
-            let delta = (Math.random() - 0.49) * 0.0008;
-            currentPrice = parseFloat((currentPrice + delta).toFixed(5));
-            document.getElementById('live-price-display').innerText = currentPrice.toFixed(5);
+            let delta = (Math.random() - 0.49) * cfg.deltaScale;
+            currentPrice = parseFloat((currentPrice + delta).toFixed(cfg.step === 0.0001 ? 5 : 2));
+            document.getElementById('live-price-display').innerText = currentPrice.toFixed(cfg.step === 0.0001 ? 5 : 2);
 
             let now = Math.floor(Date.now() / 1000);
-            candleSeries.update({ time: now, open: prevPrice, high: Math.max(prevPrice, currentPrice), low: Math.min(prevPrice, currentPrice), close: currentPrice });
+            if (now <= lastCandleTime) {
+                now = lastCandleTime + 1;
+            }
+            lastCandleTime = now;
+
+            try {
+                candleSeries.update({ 
+                    time: now, 
+                    open: prevPrice, 
+                    high: Math.max(prevPrice, currentPrice), 
+                    low: Math.min(prevPrice, currentPrice), 
+                    close: currentPrice 
+                });
+            } catch(chartErr) {
+                console.warn("Chart update skipped:", chartErr);
+            }
 
             try {
                 const alertRes = await fetch('/api/v1/alerts/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        symbol: document.getElementById('asset-symbol').value,
+                        symbol: currentAsset,
                         current_price: currentPrice,
                         previous_price: prevPrice,
                         pivot_levels: activePivotLevels
