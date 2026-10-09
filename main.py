@@ -88,11 +88,36 @@ def verify_password(stored_password_hash: str, provided_password: str) -> bool:
 # --- IN-MEMORY ENCRYPTED USER DATABASE ---
 users_db: Dict[str, dict] = {}
 
+webhooks_db: Dict[str, str] = {}
+
+def dispatch_webhook_alert(url: str, message: str, symbol: str, level: str, price: float) -> str:
+    try:
+        payload = {
+            "content": f"🚨 **UMARMATHI PIVOT ALERT**: {message}",
+            "text": f"🚨 UMARMATHI PIVOT ALERT: {message}",
+            "event": "PRICE_CROSSING_BREACH",
+            "symbol": symbol,
+            "crossed_level": level,
+            "price": price
+        }
+        data_bytes = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(
+            url,
+            data=data_bytes,
+            headers={"Content-Type": "application/json", "User-Agent": "UmarmathiAlertEngine/13.0"}
+        )
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            return f"Webhook sent (HTTP {resp.status})"
+    except Exception as e:
+        logger.warning(f"Webhook error: {e}")
+        return f"Webhook notice: {e}"
+
+
 # --- FASTAPI APPLICATION SETUP ---
 app = FastAPI(
     title="Umarmathi Pivot Point Calculator & Live Trading Engine",
     description="OWASP Top 10 Secured Platform with Direct Auth, Password Policy Enforcement & Real-Time Alerts",
-    version="12.0.0"
+    version="13.0.0"
 )
 
 # --- SECURITY HEADERS MIDDLEWARE ---
@@ -158,12 +183,14 @@ class AlertCheckRequest(BaseModel):
     current_price: float = Field(..., gt=0)
     previous_price: float = Field(..., gt=0)
     pivot_levels: PivotLevels
+    webhook_url: Optional[str] = None
 
 class AlertTriggerResponse(BaseModel):
     triggered: bool
     symbol: str
     message: str
     crossed_level: Optional[str] = None
+    webhook_status: Optional[str] = None
 
 # --- CALCULATION LOGIC ---
 def calculate_pivots(req: PivotRequest) -> PivotLevels:
@@ -348,7 +375,7 @@ async def get_market_quote(symbol: str = "EURUSD"):
         try:
             if symbol == "EURUSD" and "EUR" in rates and rates["EUR"] > 0:
                 base_price = round(1.0 / rates["EUR"], 5)
-            elif symbol == "GBPUSH" and "GBP" in rates and rates["GBP"] > 0:
+            elif symbol == "GBPUSD" and "GBP" in rates and rates["GBP"] > 0:
                 base_price = round(1.0 / rates["GBP"], 5)
             elif symbol == "USDJPY" and "JPY" in rates and rates["JPY"] > 0:
                 base_price = round(rates["JPY"], 3)
@@ -362,7 +389,7 @@ async def get_market_quote(symbol: str = "EURUSD"):
             logger.warning(f"Error parsing live market rate for {symbol}: {parse_err}")
 
     spread_pips = 0.00015 if symbol in ["EURUSD", "GBPUSD"] else (0.02 if symbol == "USDJPY" else 0.25)
-    decimals = 5 if symbol in ["EURUSD", "GBUUSD"] else (3 if symbol == "USDJPY" else 2)
+    decimals = 5 if symbol in ["EURUSD", "GBPUSD"] else (3 if symbol == "USDJPY" else 2)
     
     bid = round(base_price - (spread_pips / 2.0), decimals)
     ask = round(base_price + (spread_pips / 2.0), decimals)
@@ -413,12 +440,20 @@ async def check_price_crossing(
             client_ip = request.client.host if request.client else "unknown"
             msg = f"PRICE CROSSING DETECTED: {req.symbol} crossed {level_name} zone ({level_val:.4f}). Current Price: {curr:.4f}"
             audit_log("ALERT_BREACH", current_user.user_id, client_ip, {"symbol": req.symbol, "level": level_name, "price": curr})
+
+            webhook_status = None
+            target_url = req.webhook_url or webhooks_db.get(current_user.user_id)
+            if target_url:
+                webhook_status = dispatch_webhook_alert(target_url, msg, req.symbol, level_name, curr)
+
             return AlertTriggerResponse(
                 triggered=True,
                 symbol=req.symbol,
                 message=msg,
-                crossed_level=level_name
+                crossed_level=level_name,
+                webhook_status=webhook_status
             )
+
             
     return AlertTriggerResponse(triggered=False, symbol=req.symbol, message="Price within threshold limits.")
 

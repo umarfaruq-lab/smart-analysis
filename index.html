@@ -530,7 +530,7 @@
                     prevPrice = currentPrice;
                     currentPrice = quoteData.price;
 
-                    const decimals = (currentAsset === 'EURUSD' || currentAsset === 'GBUUSD') ? 5 : (currentAsset === 'USDJPY' ? 3 : 2);
+                    const decimals = (currentAsset === 'EURUSD' || currentAsset === 'GBPUSD') ? 5 : (currentAsset === 'USDJPY' ? 3 : 2);
                     
                     const priceDisplay = document.getElementById("live-price-display");
                     if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(decimals);
@@ -539,7 +539,7 @@
                     if (bidDisplay && quoteData.bid) bidDisplay.innerText = quoteData.bid.toFixed(decimals);
 
                     const askDisplay = document.getElementById("live-ask-display");
-                    if (asdDisplay && quoteData.ask) askDisplay.innerText = quoteData.ask.toFixed(decimals);
+                    if (askDisplay && quoteData.ask) askDisplay.innerText = quoteData.ask.toFixed(decimals);
 
                     let now = Math.floor(Date.now() / 1000);
                     if (now <= lastCandleTime) {
