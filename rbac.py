@@ -2,13 +2,12 @@ import os
 import time
 import jwt
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-production-umarmathi")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_SECONDS = 86400  # 24 hours
 
 security_bearer = HTTPBearer(auto_error=False)
 
@@ -23,15 +22,13 @@ class UserContext:
         self.email = email
         self.roles = roles
 
-def create_access_token(user_id: str, email: str, roles: List[str], expires_delta_seconds: int = ACCESS_TOKEN_EXPIRE_SECONDS) -> str:
-    """Generates a signed JWT access token for authenticated users"""
-    now = int(time.time())
-    payload: Dict[str, Any] = {
+def create_access_token(user_id: str, email: str, roles: List[str], expires_delta_seconds: int = 86400) -> str:
+    payload = {
         "sub": user_id,
         "email": email,
         "roles": roles,
-        "iat": now,
-        "exp": now + expires_delta_seconds
+        "iat": int(time.time()),
+        "exp": int(time.time()) + expires_delta_seconds
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=ALGORITHM)
 
@@ -45,13 +42,12 @@ async def get_current_user(
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub", "unknown")
-        email: Optional[str] = payload.get("email")
+        email: str = payload.get("email", "")
         roles_raw: List[str] = payload.get("roles", [UserRole.TRADER.value])
         
         user_roles = [UserRole(r) for r in roles_raw if r in UserRole.__members__]
         if not user_roles:
             user_roles = [UserRole.TRADER]
-            
         return UserContext(user_id=user_id, email=email, roles=user_roles)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -73,6 +69,6 @@ class RequireRole:
         if not has_permission:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. This feature requires one of the following permissions: {[r.value for r in self.required_roles]}"
+                detail=f"Access denied. Required permission: {[r.value for r in self.required_roles]}"
             )
         return current_user

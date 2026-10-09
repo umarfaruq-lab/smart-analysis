@@ -9,7 +9,7 @@ from enum import Enum
 from fastapi import FastAPI, Depends, HTTPException, Security, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 from cryptography.fernet import Fernet
 
 from rbac import (
@@ -57,14 +57,6 @@ def decrypt_pii(encrypted_data: str) -> str:
 SPECIAL_CHARACTERS = "!@#$%^&*()_+-=[]{}|;:,.<>?/"
 
 def validate_password_policy(password: str) -> List[str]:
-    """
-    Validates a password against OWASP security standards:
-    1. Minimum 8 characters
-    2. At least 1 uppercase letter (A-Z)
-    3. At least 1 lowercase letter (a-z)
-    4. At least 1 numeric digit (0-9)
-    5. At least 1 special character
-    """
     errors = []
     if len(password) < 8:
         errors.append("Password must be at least 8 characters long.")
@@ -75,7 +67,7 @@ def validate_password_policy(password: str) -> List[str]:
     if not any(c.isdigit() for c in password):
         errors.append("Password must contain at least one numeric digit (0-9).")
     if not any(c in SPECIAL_CHARACTERS for c in password):
-        errors.append(f"Password must contain at least one special character ({SPECIAL_CHARACTERS[:10]}...).")
+        errors.append("Password must contain at least one special character (!@#$%...).")
     return errors
 
 def hash_password(password: str) -> str:
@@ -94,14 +86,13 @@ def verify_password(stored_password_hash: str, provided_password: str) -> bool:
         return False
 
 # --- IN-MEMORY ENCRYPTED USER DATABASE ---
-# Key: normalized email -> Value: dict with encrypted PII and salted password hash
 users_db: Dict[str, dict] = {}
 
 # --- FASTAPI APPLICATION SETUP ---
 app = FastAPI(
     title="Umarmathi Pivot Point Calculator & Live Trading Engine",
     description="OWASP Top 10 Secured Platform with Direct Auth, Password Policy Enforcement & Real-Time Alerts",
-    version="7.0.0"
+    version="8.0.0"
 )
 
 # --- SECURITY HEADERS MIDDLEWARE ---
@@ -119,10 +110,10 @@ async def apply_security_headers(request: Request, call_next):
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN, "http://localhost:8000"],
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+    allow_headers=["*"],
 )
 
 # --- MODELS & SCHEMAS ---
@@ -221,7 +212,7 @@ async def health_check():
         "status": "healthy",
         "timestamp": time.time(),
         "service": "Umarmathi Pivot Engine",
-        "version": "7.0.0",
+        "version": "8.0.0",
         "auth_policy": "OWASP Compliant Password Enforcement"
     }
 
@@ -239,7 +230,6 @@ async def user_signup(req: SignUpRequest, request: Request):
             detail="An account with this email address already exists. Please log in."
         )
 
-    # Validate OWASP Password Policy
     password_errors = validate_password_policy(req.password)
     if password_errors:
         audit_log("SIGNUP_POLICY_VIOLATION", "anon", client_ip, {"email": normalized_email, "errors": password_errors})
@@ -248,7 +238,6 @@ async def user_signup(req: SignUpRequest, request: Request):
             detail={"message": "Password policy violation", "requirements": password_errors}
         )
 
-    # Hash Password & Encrypt PII
     user_id = f"user_{secrets.token_hex(6)}"
     pwd_hash = hash_password(req.password)
     encrypted_email = encrypt_pii(normalized_email)
