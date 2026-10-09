@@ -22,37 +22,35 @@ class UserContext:
         self.email = email
         self.roles = roles
 
-def create_access_token(user_id: str, email: str, roles: List[str], expires_delta_seconds: int = 86400) -> str:
+def create_access_token(user_id: str, email: str, roles: List[str], expires_delta: int = 86400) -> str:
     payload = {
         "sub": user_id,
         "email": email,
         "roles": roles,
-        "iat": int(time.time()),
-        "exp": int(time.time()) + expires_delta_seconds
+        "iat": time.time(),
+        "exp": time.time() + expires_delta
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=ALGORITHM)
 
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security_bearer)
 ) -> UserContext:
-    if not credentials or not credentials.credentials:
+    if not credentials:
         return UserContext(user_id="anon_guest", email=None, roles=[UserRole.ANONYMOUS])
 
     token = credentials.credentials
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub", "unknown")
-        email: str = payload.get("email", "")
+        email: str = payload.get("email")
         roles_raw: List[str] = payload.get("roles", [UserRole.TRADER.value])
         
         user_roles = [UserRole(r) for r in roles_raw if r in UserRole.__members__]
-        if not user_roles:
-            user_roles = [UserRole.TRADER]
         return UserContext(user_id=user_id, email=email, roles=user_roles)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session token has expired. Please log in again."
+            detail="Session token has expired. Please sign in again."
         )
     except jwt.PyJWTError:
         raise HTTPException(
@@ -69,6 +67,6 @@ class RequireRole:
         if not has_permission:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Required permission: {[r.value for r in self.required_roles]}"
+                detail=f"Access denied. Required permissions: {[r.value for r in self.required_roles]}"
             )
         return current_user

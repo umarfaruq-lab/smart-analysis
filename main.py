@@ -92,7 +92,7 @@ users_db: Dict[str, dict] = {}
 app = FastAPI(
     title="Umarmathi Pivot Point Calculator & Live Trading Engine",
     description="OWASP Top 10 Secured Platform with Direct Auth, Password Policy Enforcement & Real-Time Alerts",
-    version="8.0.0"
+    version="10.0.0"
 )
 
 # --- SECURITY HEADERS MIDDLEWARE ---
@@ -107,12 +107,11 @@ async def apply_security_headers(request: Request, call_next):
     return response
 
 # --- CORS MIDDLEWARE ---
-ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -201,8 +200,13 @@ def calculate_pivots(req: PivotRequest) -> PivotLevels:
 
 # --- ROUTES & ENDPOINTS ---
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INDEX_FILE_PATH = os.path.join(BASE_DIR, "index.html")
+
 @app.get("/")
 async def serve_frontend():
+    if os.path.exists(INDEX_FILE_PATH):
+        return FileResponse(INDEX_FILE_PATH)
     return FileResponse("index.html")
 
 @app.get("/health")
@@ -212,7 +216,7 @@ async def health_check():
         "status": "healthy",
         "timestamp": time.time(),
         "service": "Umarmathi Pivot Engine",
-        "version": "8.0.0",
+        "version": "10.0.0",
         "auth_policy": "OWASP Compliant Password Enforcement"
     }
 
@@ -378,9 +382,6 @@ async def check_price_crossing(
             
     return AlertTriggerResponse(triggered=False, symbol=req.symbol, message="Price within threshold limits.")
 
-@app.options("/api/v1/pivots/calculate")
-@app.options("/api/v1/alerts/check")
-@app.options("/api/v1/auth/signup")
-@app.options("/api/v1/auth/login")
-async def options_handler():
+@app.options("/{full_path:path}")
+async def wildcard_options_handler(full_path: str):
     return JSONResponse(status_code=200, content={"status": "OPTIONS_PERMITTED"})

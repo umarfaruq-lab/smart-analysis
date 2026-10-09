@@ -65,7 +65,9 @@
                         <span id="live-price-display" class="text-lg font-mono font-extrabold text-emerald-400">1.08500</span>
                     </div>
                 </div>
-                <div id="tv-chart" class="w-full h-[420px] rounded-xl overflow-hidden border border-slate-800"></div>
+                <div id="tv-chart" class="w-full h-[420px] rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center text-slate-500 text-sm font-mono">
+                    Initializing TradingView Stream...
+                </div>
             </div>
 
             <!-- AUTOMATED PRICE CROSSING ALERT BANNER -->
@@ -209,16 +211,29 @@
         let activePivotLevels = { pivot: 1.0850, r1: 1.0890, r2: 1.0930, r3: 1.0970, s1: 1.0810, s2: 1.0770, s3: 1.0730 };
         let lastCandleTime = 0;
 
-        // INITIALIZE LIGHTWEIGHT CHART
+        // SAFE LIGHTWEIGHT CHART INITIALIZATION
+        let chart = null;
+        let candleSeries = null;
         const chartElement = document.getElementById('tv-chart');
-        const chart = LightweightCharts.createChart(chartElement, {
-            layout: { backgroundColor: '#020617', textColor: '#94a3b8' },
-            grid: { vertLines: { color: '#0f172a' }, horzLines: { color: '#0f172a' } },
-            timeScale: { timeVisible: true, secondsVisible: true }
-        });
-        const candleSeries = chart.addCandlestickSeries({
-            upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
-        });
+
+        try {
+            if (typeof LightweightCharts !== 'undefined') {
+                chartElement.innerHTML = '';
+                chart = LightweightCharts.createChart(chartElement, {
+                    layout: { backgroundColor: '#020617', textColor: '#94a3b8' },
+                    grid: { vertLines: { color: '#0f172a' }, horzLines: { color: '#0f172a' } },
+                    timeScale: { timeVisible: true, secondsVisible: true }
+                });
+                candleSeries = chart.addCandlestickSeries({
+                    upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
+                });
+            } else {
+                chartElement.innerText = "Live price stream active (Chart canvas offline).";
+            }
+        } catch (chartInitErr) {
+            console.warn("TradingView chart initialization warning:", chartInitErr);
+            chartElement.innerText = "Live price stream active.";
+        }
 
         function initializeChartForAsset(symbol) {
             currentAsset = symbol;
@@ -240,11 +255,18 @@
                 let high = open + Math.random() * cfg.deltaScale;
                 let low = open - Math.random() * cfg.deltaScale;
                 let close = (high + low) / 2;
-                candles.push({ time: baseTime + (i * 60), open, high, low, close });
+                candles.push({ time: baseTime + (i * 60), open: open, high: high, low: low, close: close });
                 currentPrice = close;
             }
             lastCandleTime = baseTime + (49 * 60);
-            candleSeries.setData(candles);
+
+            if (candleSeries) {
+                try {
+                    candleSeries.setData(candles);
+                } catch(e) {
+                    console.warn("SetData warning:", e);
+                }
+            }
             triggerCalculation();
         }
 
@@ -353,8 +375,12 @@
             const val = e.target.value;
             const updateCheck = (id, valid) => {
                 const el = document.getElementById(id);
-                el.className = valid ? "text-emerald-400 flex items-center space-x-1.5 font-semibold" : "text-rose-400 flex items-center space-x-1.5";
-                el.children[0].innerText = valid ? "✓" : "✗";
+                if (el) {
+                    el.className = valid ? "text-emerald-400 flex items-center space-x-1.5 font-semibold" : "text-rose-400 flex items-center space-x-1.5";
+                    if (el.children && el.children[0]) {
+                        el.children[0].innerText = valid ? "✓" : "✗";
+                    }
+                }
             };
             updateCheck('policy-len', val.length >= 8);
             updateCheck('policy-upper', /[A-Z]/.test(val));
@@ -368,6 +394,11 @@
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
             const fullName = document.getElementById('signup-name').value;
+
+            if (!email || !password) {
+                showAuthError("Please fill in both email and password.");
+                return;
+            }
 
             try {
                 const res = await fetch('/api/v1/auth/signup', {
@@ -397,6 +428,11 @@
         document.getElementById('btn-submit-login').addEventListener('click', async () => {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                showAuthError("Please enter your email and password.");
+                return;
+            }
 
             try {
                 const res = await fetch('/api/v1/auth/login', {
@@ -474,16 +510,18 @@
             }
             lastCandleTime = now;
 
-            try {
-                candleSeries.update({ 
-                    time: now, 
-                    open: prevPrice, 
-                    high: Math.max(prevPrice, currentPrice), 
-                    low: Math.min(prevPrice, currentPrice), 
-                    close: currentPrice 
-                });
-            } catch(chartErr) {
-                console.warn("Chart tick skipped:", chartErr);
+            if (candleSeries) {
+                try {
+                    candleSeries.update({ 
+                        time: now, 
+                        open: prevPrice, 
+                        high: Math.max(prevPrice, currentPrice), 
+                        low: Math.min(prevPrice, currentPrice), 
+                        close: currentPrice 
+                    });
+                } catch(chartErr) {
+                    console.warn("Chart tick skipped:", chartErr);
+                }
             }
 
             try {
