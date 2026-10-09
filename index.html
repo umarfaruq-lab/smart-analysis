@@ -26,17 +26,17 @@
             </span>
             <!-- UNAUTHENTICATED BUTTONS -->
             <div id="unauth-actions" class="flex items-center space-x-2">
-                <button id="btn-open-login" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs md:text-sm px-3.5 py-2 rounded-lg font-semibold transition-all">
+                <button id="btn-open-login" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs md:text-sm px-3.5 py-2 rounded-lg font-semibold transition-all">
                     Log In
                 </button>
-                <button id="btn-open-signup" class="bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30">
+                <button id="btn-open-signup" type="button" class="bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30">
                     Sign Up
                 </button>
             </div>
             <!-- AUTHENTICATED PROFILE BADGE -->
             <div id="user-profile-badge" class="hidden flex items-center space-x-3">
                 <span id="user-email-display" class="text-xs bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-mono"></span>
-                <button id="btn-signout" class="bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all">
+                <button id="btn-signout" type="button" class="bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all">
                     Sign Out
                 </button>
             </div>
@@ -128,12 +128,12 @@
     <!-- AUTHENTICATION MODAL -->
     <div id="auth-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-            <button id="btn-close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            <button id="btn-close-modal" type="button" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
             
             <!-- MODAL TABS -->
             <div class="flex border-b border-slate-800 mb-6">
-                <button id="tab-signup-btn" class="flex-1 pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400">Sign Up</button>
-                <button id="tab-login-btn" class="flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200">Log In</button>
+                <button id="tab-signup-btn" type="button" class="flex-1 pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400">Sign Up</button>
+                <button id="tab-login-btn" type="button" class="flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200">Log In</button>
             </div>
 
             <!-- SIGN UP FORM -->
@@ -259,7 +259,7 @@
             try {
                 const token = localStorage.getItem('auth_token');
                 const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
+                if (token) headers['Authorization'] = ;
 
                 const res = await fetch('/api/v1/pivots/calculate', {
                     method: 'POST',
@@ -328,7 +328,7 @@
 
             try {
                 const res = await fetch('/api/v1/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization':  }
                 });
                 if (res.ok) {
                     const profile = await res.json();
@@ -416,7 +416,9 @@
         });
 
         document.getElementById('btn-google-oauth').addEventListener('click', async () => {
-            const email = prompt("Google OAuth 2.0 Sign-In:\n\nEnter your Google email to authenticate:", "trader@umarmathi.com");
+            const email = prompt("Google OAuth 2.0 Sign-In:
+
+Enter your Google email to authenticate:", "trader@umarmathi.com");
             if (email) {
                 const res = await fetch('/api/v1/auth/google/callback', {
                     method: 'POST',
