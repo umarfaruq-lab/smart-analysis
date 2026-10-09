@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 from fastapi import FastAPI, Depends, HTTPException, Security, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field
 from cryptography.fernet import Fernet
 
@@ -92,14 +92,14 @@ users_db: Dict[str, dict] = {}
 app = FastAPI(
     title="Umarmathi Pivot Point Calculator & Live Trading Engine",
     description="OWASP Top 10 Secured Platform with Direct Auth, Password Policy Enforcement & Real-Time Alerts",
-    version="10.0.0"
+    version="11.0.0"
 )
 
 # --- SECURITY HEADERS MIDDLEWARE ---
 @app.middleware("http")
 async def apply_security_headers(request: Request, call_next):
     response = await call_next(request)
-    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -111,7 +111,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -200,13 +200,12 @@ def calculate_pivots(req: PivotRequest) -> PivotLevels:
 
 # --- ROUTES & ENDPOINTS ---
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-INDEX_FILE_PATH = os.path.join(BASE_DIR, "index.html")
-
 @app.get("/")
 async def serve_frontend():
-    if os.path.exists(INDEX_FILE_PATH):
-        return FileResponse(INDEX_FILE_PATH)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    index_path = os.path.join(base_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
     return FileResponse("index.html")
 
 @app.get("/health")
@@ -216,7 +215,7 @@ async def health_check():
         "status": "healthy",
         "timestamp": time.time(),
         "service": "Umarmathi Pivot Engine",
-        "version": "10.0.0",
+        "version": "11.0.0",
         "auth_policy": "OWASP Compliant Password Enforcement"
     }
 
@@ -384,4 +383,4 @@ async def check_price_crossing(
 
 @app.options("/{full_path:path}")
 async def wildcard_options_handler(full_path: str):
-    return JSONResponse(status_code=200, content={"status": "OPTIONS_PERMITTED"})
+    return JSONResponse(status_code=200, content={"status": "OPTIONS_PERMITTED", "path": full_path})

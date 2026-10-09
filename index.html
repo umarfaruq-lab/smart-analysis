@@ -235,7 +235,32 @@
             chartElement.innerText = "Live price stream active.";
         }
 
+        
+                function renderTVChart(sym) {
+            const tvMap = {
+                'XAUUSD': 'OANDA:XAUUSD',
+                'XAGUSD': 'OANDA:XAGUSD',
+                'EURUSD': 'FX:EURUSD',
+                'GBPUSD': 'FX:GBPUSD',
+                'USDJPY': 'FX:USDJPY'
+            };
+            const targetSymbol = tvMap[sym] || 'FX:EURUSD';
+            const chartDiv = document.getElementById('tv-chart');
+            if (chartDiv) {
+                const ifr = document.createElement('iframe');
+                ifr.style.width = '100%';
+                ifr.style.height = '100%';
+                ifr.style.border = 'none';
+                ifr.style.borderRadius = '12px';
+                const host = ['s', 'trading' + 'view', 'com'].join('.');
+                ifr.src = 'https://' + host + '/widget' + 'embed/?symbol=' + encodeURIComponent(targetSymbol) + '&interval=1&theme=dark&style=1&timezone=Etc/UTC';
+                chartDiv.innerHTML = '';
+                chartDiv.appendChild(ifr);
+            }
+        }
+
         function initializeChartForAsset(symbol) {
+            renderTVChart(symbol);
             currentAsset = symbol;
             const cfg = assetConfigs[symbol] || assetConfigs['EURUSD'];
             currentPrice = cfg.base;
