@@ -26,8 +26,17 @@ def audit_log(event_type: str, user_id: str, client_ip: str, details: dict):
     }
     logger.info(f"AUDIT_RECORD: {json.dumps(log_entry)}")
 
-FIELD_ENCRYPTION_KEY = os.getenv("FIELD_ENCRYPTION_KEY", Fernet.generate_key().decode())
-cipher_suite = Fernet(FIELD_ENCRYPTION_KEY.encode())
+raw_key = os.getenv("FIELD_ENCRYPTION_KEY", "")
+try:
+    if raw_key and len(raw_key) > 0:
+        cipher_suite = Fernet(raw_key.encode())
+        FIELD_ENCRYPTION_KEY = raw_key
+    else:
+        raise ValueError("FIELD_ENCRYPTION_KEY empty")
+except Exception as e:
+    logger.warning(f"FIELD_ENCRYPTION_KEY invalid or missing ({e}). Auto-generating fallback Fernet key.")
+    FIELD_ENCRYPTION_KEY = Fernet.generate_key().decode()
+    cipher_suite = Fernet(FIELD_ENCRYPTION_KEY.encode())
 
 def encrypt_pii(data: str) -> str:
     return cipher_suite.encrypt(data.encode()).decode()
