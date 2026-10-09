@@ -1,8 +1,10 @@
+from fastapi import FastAPI, Depends, HTTPException, Security, Request, status 
 from fastapi.responses import FileResponse
-@app.get("/")
+@app.get("/") 
 async def serve\_frontend():
-    """Serves the main TradingView dashboard interface""" 
-    return FileResponse("index.html")
+    """Serves the Umarmathi Trading Dashboard""" 
+return FileResponse("index.html")
+@app.get("/")
 @app.get("/health")
 @app.get("/healthz")
 async def health\_check():
