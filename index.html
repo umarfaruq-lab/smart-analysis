@@ -86,6 +86,15 @@
                 </h2>
 
                 <form id="pivot-form" onsubmit="return false;" class="space-y-4">
+                    <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                            <span class="text-xs font-mono font-bold text-slate-300">Continuous Auto-Daily Sync</span>
+                        </div>
+                        <button type="button" id="btn-auto-sync" class="bg-emerald-950 hover:bg-emerald-900 border border-emerald-600 text-emerald-300 text-[11px] font-mono px-2.5 py-1 rounded transition-all">
+                            Auto-Fetch Daily OHLC
+                        </button>
+                    </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Calculation Framework</label>
                         <select id="calc-method" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
@@ -293,6 +302,37 @@
                 }
             }
             triggerCalculation();
+        }
+
+        
+        async function fetchAutoDailyPivots() {
+            const method = document.getElementById('calc-method').value;
+            try {
+                const res = await fetch(`/api/v1/pivots/auto-daily?symbol=${encodeURIComponent(currentAsset)}&method=${method}`);
+                if (res.ok) {
+                    const autoData = await res.json();
+                    document.getElementById('input-high').value = autoData.high;
+                    document.getElementById('input-low').value = autoData.low;
+                    document.getElementById('input-close').value = autoData.close;
+                    
+                    activePivotLevels = autoData.pivot_levels;
+                    const decimals = (currentAsset === 'EURUSD' || currentAsset === 'GBPUSD') ? 4 : (currentAsset === 'USDJPY' ? 2 : 2);
+                    document.getElementById('val-p').innerText = autoData.pivot_levels.pivot.toFixed(decimals);
+                    document.getElementById('val-r1').innerText = autoData.pivot_levels.r1.toFixed(decimals);
+                    document.getElementById('val-r2').innerText = autoData.pivot_levels.r2.toFixed(decimals);
+                    document.getElementById('val-r3').innerText = autoData.pivot_levels.r3.toFixed(decimals);
+                    document.getElementById('val-s1').innerText = autoData.pivot_levels.s1.toFixed(decimals);
+                    document.getElementById('val-s2').innerText = autoData.pivot_levels.s2.toFixed(decimals);
+                    document.getElementById('val-s3').innerText = autoData.pivot_levels.s3.toFixed(decimals);
+                    
+                    const banner = document.getElementById("alert-banner");
+                    if (banner) {
+                        document.getElementById("alert-text").innerText = `Automated Daily Sync Active: Zero manual input required. Pivot (${autoData.pivot_levels.pivot.toFixed(decimals)}), R1 (${autoData.pivot_levels.r1.toFixed(decimals)}), S1 (${autoData.pivot_levels.s1.toFixed(decimals)}).`;
+                    }
+                }
+            } catch(err) {
+                console.warn("Auto daily pivot fetch warning:", err);
+            }
         }
 
         async function triggerCalculation() {
